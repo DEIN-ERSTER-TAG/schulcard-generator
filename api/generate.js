@@ -57,7 +57,7 @@ Antworte NUR mit validem JSON – kein Markdown, keine Erklärungen:
   "photoCaptions": ["Bildunterschrift 1 passend zu ${jobTitle}", "Bildunterschrift 2", "Bildunterschrift 3", "Bildunterschrift 4"],
   "tasksDo": ["Typische Aufgabe 1 als ${jobTitle}", "Typische Aufgabe 2", "Typische Aufgabe 3", "Typische Aufgabe 4", "Typische Aufgabe 5"],
   "tasksDont": ["Was man als ${jobTitle} NICHT macht 1", "Nicht-Aufgabe 2", "Nicht-Aufgabe 3", "Nicht-Aufgabe 4"],
-  "education": "Welcher Schulabschluss für ${jobTitle} bei ${companyName} nötig ist",
+  "education": "NUR der Abschlussname, z.B. 'Hauptschulabschluss' oder 'Mittlere Reife'. Kein weiterer Text, keine Erklärungen.",
   "salaryY1": 900,
   "salaryY2": 1000,
   "salaryY3": 1100,
@@ -134,7 +134,7 @@ module.exports = async (req, res) => {
     const { companyName, jobTitle, street = '', zip = '', city = '' } = req.body;
     if (!companyName || !jobTitle) return res.status(400).json({ error: 'Unternehmensname und Beruf sind Pflicht.' });
 
-    const system = `Du bist ein Experte für deutsche Ausbildungsberufe und Unternehmen. Du erstellst Inhalte für Schulcards – visuelle Berufserkundungskarten für Schüler*innen (14–16 Jahre). WICHTIGSTE REGEL: Alle Inhalte müssen 100% zum genannten Beruf und Unternehmen passen. Verwende niemals Inhalte aus anderen Berufsfeldern.`;
+    const system = `Du bist ein Experte für deutsche Ausbildungsberufe und Unternehmen. Du erstellst Inhalte für Schulcards – visuelle Berufserkundungskarten für Schüler*innen (14–16 Jahre). WICHTIGSTE REGEL: Alle Inhalte müssen 100% zum genannten Beruf und Unternehmen passen. Verwende niemals Inhalte aus anderen Berufsfeldern. Verwende KEIN Markdown in den Textwerten (keine **Fettung**, keine ++Hervorhebung++, keine Unterstriche).`;
     let raw = await callBedrock(system, buildPrompt(companyName, jobTitle, street, zip, city));
     raw = raw.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim();
     const data = JSON.parse(raw);

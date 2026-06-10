@@ -180,7 +180,6 @@ textarea:focus{border-color:#F5C800}
 
     <div class="sb-section">
       <button class="btn-gen" id="btnGen" onclick="generate()">✨ Schulcard generieren</button>
-      <button class="btn-gen" style="margin-top:6px;background:#888;font-size:12px;" onclick="generateDemo()">🧪 Demo-Vorschau (ohne API)</button>
       <div class="err" id="errBox"></div>
     </div>
 
@@ -546,6 +545,23 @@ async function generateDemo() {
   document.getElementById('refineBox').classList.add('show');
 }
 
+function cleanText(txt) {
+  let t = (txt || '')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/\+\+([^+]+)\+\+/g, '$1')
+    .replace(/__([^_]+)__/g, '$1')
+    .replace(/[*_]([^*_\n]+)[*_]/g, '$1');
+  const target = Math.ceil(t.length * 2 / 3);
+  if (t.length <= target) return t.trim();
+  for (let i = target; i >= Math.max(0, target - 80); i--) {
+    if ('.!?'.includes(t[i])) return t.slice(0, i + 1).trim();
+  }
+  for (let i = target; i < t.length; i++) {
+    if ('.!?'.includes(t[i])) return t.slice(0, i + 1).trim();
+  }
+  return t.trim();
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // SCHULCARD TEMPLATE — generiert komplette HTML-Datei als String
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -590,9 +606,11 @@ function renderSchulcard(d, imgs) {
     d.socialLinkedin ? '<a href="' + d.socialLinkedin  + '" target="_blank" class="soc" title="LinkedIn">💼</a>' : '',
   ].filter(Boolean).join('');
 
+  const cleanJobDesc = cleanText(d.jobDescription);
+  const cleanImpText = cleanText(d.importanceText);
   const impText = d.importanceHighlight
-    ? (d.importanceText||'').replace(d.importanceHighlight, '<span>' + d.importanceHighlight + '</span>')
-    : (d.importanceText||'');
+    ? cleanImpText.replace(d.importanceHighlight, '<span>' + d.importanceHighlight + '</span>')
+    : cleanImpText;
 
   const brand      = d.brandColor      || '#003087';
   const brandLight = d.brandColorLight || '#e8eef7';
@@ -617,7 +635,7 @@ body{font-family:'DM Sans',sans-serif;background:#f0f0f0;min-height:100vh;displa
 .tsp{flex:1}
 .tact{display:flex;gap:14px;font-size:12px;color:var(--tm)}
 /* COMPANY BAR */
-.cbar{display:flex;align-items:center;gap:12px;padding:10px 20px;border-bottom:1px solid var(--gm)}
+.cbar{display:flex;align-items:center;gap:12px;padding:10px 20px}
 .cback{width:28px;height:28px;border-radius:50%;border:1px solid var(--gm);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--tm);font-size:14px;flex-shrink:0}
 .clogo{width:56px;height:36px;border-radius:4px;display:flex;align-items:center;justify-content:center;background:#fff;border:1.5px solid #e0e0e0;color:#333;font-size:9px;font-weight:700;letter-spacing:.04em;flex-shrink:0;overflow:hidden}
 .clogo img{width:100%;height:100%;object-fit:contain;display:block}
@@ -879,7 +897,7 @@ body{font-family:'DM Sans',sans-serif;background:#f0f0f0;min-height:100vh;displa
     </div>
     <div class="s2-big">
       <div class="tlbl">${d.jobTitleShort||d.jobTitle||''}</div>
-      <div class="ttxt">${d.jobDescription||''}</div>
+      <div class="ttxt">${cleanJobDesc}</div>
     </div>
     <div class="s2-story">
       <div class="s2-dots">${dots}</div>
