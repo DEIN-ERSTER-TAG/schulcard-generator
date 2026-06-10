@@ -28,96 +28,99 @@ async function callBedrock(prompt) {
 function buildPrompt(companyName, jobTitle, street, zip, city) {
   return `Du erstellst Inhalte für eine "Schulcard" – eine visuelle Berufserkundungskarte für deutsche Schülerinnen und Schüler (14–16 Jahre).
 
-Unternehmen: ${companyName}
-Ausbildungsberuf / Duales Studium: ${jobTitle}
-Adresse: ${street}, ${zip} ${city}
+WICHTIG: Erstelle alle Inhalte AUSSCHLIESSLICH für dieses konkrete Unternehmen und diesen konkreten Beruf:
+- Unternehmen: ${companyName}
+- Ausbildungsberuf: ${jobTitle}
+- Adresse: ${street}, ${zip} ${city}
 
-Recherchiere dieses Unternehmen und diesen Beruf. Erstelle hochwertige, authentische Inhalte auf Deutsch. Du-Form, jugendlich aber seriös. Wenn du keine Infos findest, erfinde realistische, glaubwürdige Inhalte.
+Nutze dein Wissen über ${companyName} (Branche, Geschichte, Produkte, Werte, Größe). Wenn du keine gesicherten Infos hast, erfinde realistische, glaubwürdige Inhalte passend zu genau diesem Beruf und dieser Branche. Niemals Inhalte aus anderen Berufsfeldern verwenden.
+
+Sprache: Deutsch, Du-Form, jugendlich aber seriös, für 14–16-Jährige.
 
 Antworte NUR mit validem JSON – kein Markdown, keine Erklärungen:
 
 {
   "pageTitle": "Schulcard – ${jobTitle} bei ${companyName}",
-  "companyName": "vollständiger Unternehmensname",
-  "companyNameShort": "Kurzname ohne Rechtsform",
-  "jobTitle": "Berufsbezeichnung mit Genderstern z.B. Straßenbauer*in",
-  "jobTitleShort": "Kurzform MIT Genderstern z.B. Straßenbauer*in (immer gendern)",
-  "website": "https://...",
+  "companyName": "Vollständiger Name von ${companyName}",
+  "companyNameShort": "Kurzname von ${companyName} ohne Rechtsform",
+  "jobTitle": "${jobTitle} mit Genderstern (z.B. Kosmetiker*in)",
+  "jobTitleShort": "Kurzform von ${jobTitle} MIT Genderstern – PFLICHT",
+  "website": "Offizielle Website von ${companyName}",
   "address": "${street} · ${zip} ${city}",
-  "personName": "Typischer Azubi-Vorname",
-  "personRole": "z.B. Azubi Straßenbauer · PORR",
-  "companyDescription": "Kurze Beschreibung des Unternehmens, max 18 Wörter, direkt und ansprechend",
-  "jobDescription": "Was du in diesem Beruf machst – 2 Sätze, Du-Form, packend",
-  "importanceText": "Warum dieser Beruf wichtig ist – 2 emotionale Sätze mit einem Highlight-Wort",
-  "importanceHighlight": "das Highlight-Wort oder die -phrase (1–3 Wörter)",
-  "photoCaptions": ["Caption 1", "Caption 2", "Caption 3", "Caption 4"],
-  "tasksDo": ["Aufgabe 1", "Aufgabe 2", "Aufgabe 3", "Aufgabe 4", "Aufgabe 5"],
-  "tasksDont": ["Nicht-Aufgabe 1", "Nicht-Aufgabe 2", "Nicht-Aufgabe 3", "Nicht-Aufgabe 4"],
-  "education": "Mindestabschluss z.B. Hauptschule",
-  "salaryY1": 1200,
-  "salaryY2": 1350,
-  "salaryY3": 1500,
-  "workHours": "z.B. 39 Std./Woche",
-  "duration": "z.B. 3 Jahre",
+  "personName": "Passender Vorname für eine*n Azubi bei ${companyName}",
+  "personRole": "Azubi ${jobTitle} · ${companyName}",
+  "companyDescription": "Was ${companyName} macht – max 18 Wörter, direkt und ansprechend, passend zur Branche",
+  "jobDescription": "Was man als ${jobTitle} bei ${companyName} konkret macht – 2 Sätze, Du-Form, berufsspezifisch",
+  "importanceText": "Warum ${jobTitle} wichtig ist – 2 emotionale Sätze mit einem Highlight-Wort, berufsspezifisch",
+  "importanceHighlight": "1–3 Wörter die den Kern des Berufs ${jobTitle} beschreiben",
+  "photoCaptions": ["Bildunterschrift 1 passend zu ${jobTitle}", "Bildunterschrift 2", "Bildunterschrift 3", "Bildunterschrift 4"],
+  "tasksDo": ["Typische Aufgabe 1 als ${jobTitle}", "Typische Aufgabe 2", "Typische Aufgabe 3", "Typische Aufgabe 4", "Typische Aufgabe 5"],
+  "tasksDont": ["Was man als ${jobTitle} NICHT macht 1", "Nicht-Aufgabe 2", "Nicht-Aufgabe 3", "Nicht-Aufgabe 4"],
+  "education": "Welcher Schulabschluss für ${jobTitle} bei ${companyName} nötig ist",
+  "salaryY1": 900,
+  "salaryY2": 1000,
+  "salaryY3": 1100,
+  "workHours": "Typische Wochenstunden für ${jobTitle}",
+  "duration": "Ausbildungsdauer für ${jobTitle}",
   "equipment": [
-    {"name": "Schutzhelm", "desc": "damit dein Kopf sicher bleibt"},
-    {"name": "Warnweste", "desc": "damit du immer klar zu sehen bist"},
-    {"name": "Arbeitshose", "desc": "stabil und mit Taschen"},
-    {"name": "Arbeitshandschuhe", "desc": "für festen Grip und Schutz"},
-    {"name": "Sicherheitsschuhe", "desc": "falls mal etwas herunterfällt"}
+    {"name": "Arbeitsutensil 1 typisch für ${jobTitle}", "desc": "Wozu man es braucht"},
+    {"name": "Arbeitsutensil 2", "desc": "Wozu man es braucht"},
+    {"name": "Arbeitsutensil 3", "desc": "Wozu man es braucht"},
+    {"name": "Arbeitsutensil 4", "desc": "Wozu man es braucht"},
+    {"name": "Arbeitsutensil 5", "desc": "Wozu man es braucht"}
   ],
   "traits": [
-    {"emoji": "🤝", "name": "Teamgeist", "desc": "Du arbeitest täglich eng mit anderen zusammen"},
-    {"emoji": "💪", "name": "Körperliche Fitness", "desc": "Der Job ist körperlich anspruchsvoll"},
-    {"emoji": "🔧", "name": "Handwerkliches Geschick", "desc": "Präzision und Technikgefühl"},
-    {"emoji": "🌤️", "name": "Wetterresistenz", "desc": "Du bist bei jedem Wetter draußen"},
-    {"emoji": "⏰", "name": "Zuverlässigkeit", "desc": "Pünktlichkeit und Verlässlichkeit zählen"}
+    {"emoji": "passendes Emoji", "name": "Eigenschaft 1 wichtig für ${jobTitle}", "desc": "Warum diese Eigenschaft für den Beruf wichtig ist"},
+    {"emoji": "passendes Emoji", "name": "Eigenschaft 2", "desc": "Kurze Erklärung"},
+    {"emoji": "passendes Emoji", "name": "Eigenschaft 3", "desc": "Kurze Erklärung"},
+    {"emoji": "passendes Emoji", "name": "Eigenschaft 4", "desc": "Kurze Erklärung"},
+    {"emoji": "passendes Emoji", "name": "Eigenschaft 5", "desc": "Kurze Erklärung"}
   ],
-  "internshipDesc": "z.B. 1–2 Wochen direkt im Betrieb",
+  "internshipDesc": "Wie ein Praktikum als ${jobTitle} bei ${companyName} aussieht",
   "applyDate": "01.08.2026",
-  "applyUrl": "https://...",
+  "applyUrl": "Bewerbungsseite von ${companyName}",
   "socialInstagram": "",
   "socialFacebook": "",
   "socialYoutube": "",
   "socialLinkedin": "",
-  "brandColor": "#003087",
-  "brandColorLight": "#e8eef7",
+  "brandColor": "Primärfarbe von ${companyName} als Hex-Code (recherchieren oder sinnvoll wählen)",
+  "brandColorLight": "Helle Version der Primärfarbe als Hex-Code",
   "quiz": [
     {
       "type": "wf",
       "label": "WAHR ODER FALSCH",
-      "q": "Nur eine dieser Aussagen über das Unternehmen ist wahr. Welche?",
+      "q": "Interessante Frage über ${companyName} – nur eine Aussage ist wahr",
       "opts": [
-        {"lbl": "AUSSAGE 1", "txt": "Eine wahre Aussage über das Unternehmen", "ok": true},
-        {"lbl": "AUSSAGE 2", "txt": "Eine falsche Aussage", "ok": false},
-        {"lbl": "AUSSAGE 3", "txt": "Eine falsche Aussage", "ok": false}
+        {"lbl": "AUSSAGE 1", "txt": "Wahre Aussage über ${companyName}", "ok": true},
+        {"lbl": "AUSSAGE 2", "txt": "Falsche aber plausible Aussage über ${companyName}", "ok": false},
+        {"lbl": "AUSSAGE 3", "txt": "Falsche aber plausible Aussage über ${companyName}", "ok": false}
       ],
-      "fbOk": "Richtig! Kurze Erklärung.",
-      "fbErr": "Leider falsch. Richtig ist: ..."
+      "fbOk": "Richtig! Kurze Erklärung warum diese Aussage stimmt.",
+      "fbErr": "Leider falsch. Die richtige Antwort mit Erklärung."
     },
     {
       "type": "mc",
       "label": "MULTIPLE CHOICE",
-      "q": "Eine Frage über den Beruf oder Arbeitsalltag",
+      "q": "Konkrete Frage über den Alltag als ${jobTitle}",
       "opts": [
-        {"txt": "Falsche Antwort", "ok": false},
-        {"txt": "Richtige Antwort", "ok": true},
-        {"txt": "Falsche Antwort", "ok": false},
-        {"txt": "Falsche Antwort", "ok": false}
+        {"txt": "Falsche Antwort passend zum Beruf", "ok": false},
+        {"txt": "Richtige Antwort passend zum Beruf", "ok": true},
+        {"txt": "Falsche Antwort passend zum Beruf", "ok": false},
+        {"txt": "Falsche Antwort passend zum Beruf", "ok": false}
       ],
-      "fbOk": "Genau! Kurze Bestätigung.",
+      "fbOk": "Genau! Kurze Bestätigung mit Berufsbezug.",
       "fbErr": "Fast! Die richtige Antwort mit Erklärung."
     },
     {
       "type": "schaetz",
       "label": "SCHÄTZFRAGE",
-      "q": "Eine Schätzfrage passend zum Beruf",
-      "unit": "passende Einheit",
-      "answer": 20,
-      "tol": 8,
-      "fbOk": "Gut geschätzt! Kurze Erklärung.",
+      "q": "Interessante Schätzfrage passend zu ${jobTitle} oder ${companyName}",
+      "unit": "sinnvolle Einheit für die Schätzfrage",
+      "answer": 50,
+      "tol": 15,
+      "fbOk": "Gut geschätzt! Kurze Erklärung mit Berufsbezug.",
       "fbClose": "Nah dran! Die genaue Zahl mit Kontext.",
-      "fbErr": "Die Antwort: Zahl + Erklärung."
+      "fbErr": "Die Antwort mit Erklärung und Berufsbezug."
     }
   ]
 }`;
