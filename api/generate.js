@@ -9,7 +9,7 @@ const bedrock = new BedrockRuntimeClient({
   }
 });
 
-async function callBedrock(prompt) {
+async function callBedrock(systemPrompt, userPrompt) {
   const modelId = process.env.BEDROCK_MODEL_ID || 'us.anthropic.claude-3-5-sonnet-20241022-v2:0';
   const res = await bedrock.send(new InvokeModelCommand({
     modelId,
@@ -18,7 +18,8 @@ async function callBedrock(prompt) {
     body: JSON.stringify({
       anthropic_version: 'bedrock-2023-05-31',
       max_tokens: 8096,
-      messages: [{ role: 'user', content: prompt }]
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userPrompt }]
     })
   }));
   const body = JSON.parse(Buffer.from(res.body).toString('utf8'));
@@ -133,7 +134,8 @@ module.exports = async (req, res) => {
     const { companyName, jobTitle, street = '', zip = '', city = '' } = req.body;
     if (!companyName || !jobTitle) return res.status(400).json({ error: 'Unternehmensname und Beruf sind Pflicht.' });
 
-    let raw = await callBedrock(buildPrompt(companyName, jobTitle, street, zip, city));
+    const system = `Du bist ein Experte für deutsche Ausbildungsberufe und Unternehmen. Du erstellst Inhalte für Schulcards – visuelle Berufserkundungskarten für Schüler*innen (14–16 Jahre). WICHTIGSTE REGEL: Alle Inhalte müssen 100% zum genannten Beruf und Unternehmen passen. Verwende niemals Inhalte aus anderen Berufsfeldern.`;
+    let raw = await callBedrock(system, buildPrompt(companyName, jobTitle, street, zip, city));
     raw = raw.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim();
     const data = JSON.parse(raw);
     res.json({ data });
