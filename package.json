@@ -1,0 +1,9 @@
+{
+  "name": "schulcard-generator",
+  "version": "1.0.0",
+  "description": "KI-gestützter Schulcard-Generator mit AWS Bedrock",
+  "dependencies": {
+    "@aws-sdk/client-bedrock-runtime": "^3.600.0",
+    "dotenv": "^16.4.5"
+  }
+}
