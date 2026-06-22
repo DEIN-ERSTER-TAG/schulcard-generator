@@ -567,56 +567,62 @@ function addRefineLog(instruction) {
 }
 
 // ── ARCHIVE ───────────────────────────────────────────────────────────────────
-const ARCHIVE_KEY = 'schulcard_archive';
+const ARCHIVE_LS_KEY = 'schulcard_archive';
 
-function loadArchive() {
-  try { return JSON.parse(localStorage.getItem(ARCHIVE_KEY) || '[]'); } catch { return []; }
+function lsLoad() {
+  try { return JSON.parse(localStorage.getItem(ARCHIVE_LS_KEY) || '[]'); } catch { return []; }
+}
+function lsSave(archive) {
+  try { localStorage.setItem(ARCHIVE_LS_KEY, JSON.stringify(archive)); } catch {}
 }
 
-function saveToArchive(data) {
-  const archive = loadArchive();
-  // Update existing entry if same company+job, else prepend
-  const idx = archive.findIndex(e => e.companyName === data.companyName && e.jobTitle === data.jobTitle);
+async function archiveApi(method, body = null) {
+  try {
+    const opts = { method, headers: { 'Content-Type': 'application/json' } };
+    if (body) opts.body = JSON.stringify(body);
+    const res = await fetch('/api/archive', opts);
+    return res.ok ? await res.json() : null;
+  } catch { return null; }
+}
+
+async function saveToArchive(data) {
+  const existing = lsLoad();
+  const idx = existing.findIndex(e => e.companyName === data.companyName && e.jobTitle === data.jobTitle);
   const entry = {
-    id: idx >= 0 ? archive[idx].id : Date.now().toString(),
+    id: idx >= 0 ? existing[idx].id : Date.now().toString(),
     createdAt: new Date().toLocaleString('de-DE', { day:'2-digit', month:'2-digit', year:'2-digit', hour:'2-digit', minute:'2-digit' }),
     companyName: data.companyName || '',
-    jobTitle: data.jobTitle || '',
+    jobTitle:    data.jobTitle    || '',
     trainingType: data.trainingType || 'Ausbildung',
     data: data
   };
-  if (idx >= 0) archive.splice(idx, 1);
-  archive.unshift(entry);
-  if (archive.length > 20) archive.splice(20);
-  try {
-    localStorage.setItem(ARCHIVE_KEY, JSON.stringify(archive));
-  } catch {
-    // Storage full — trim and retry
-    archive.splice(10);
-    try { localStorage.setItem(ARCHIVE_KEY, JSON.stringify(archive)); } catch {}
-  }
-  renderArchive();
+  if (idx >= 0) existing.splice(idx, 1);
+  existing.unshift(entry);
+  if (existing.length > 50) existing.splice(50);
+  lsSave(existing);
+  renderArchive(existing);
+  // Sync to server (fire-and-forget)
+  archiveApi('POST', { entry });
 }
 
-function deleteFromArchive(id) {
-  const archive = loadArchive().filter(e => e.id !== id);
-  try { localStorage.setItem(ARCHIVE_KEY, JSON.stringify(archive)); } catch {}
-  renderArchive();
+async function deleteFromArchive(id) {
+  const local = lsLoad().filter(e => e.id !== id);
+  lsSave(local);
+  renderArchive(local);
+  archiveApi('DELETE', { id });
 }
 
 function loadFromArchive(id) {
-  const entry = loadArchive().find(e => e.id === id);
+  const entry = lsLoad().find(e => e.id === id);
   if (!entry) return;
   gData = entry.data;
   gImages = { hero: '', story: [], clothing: '', logo: '' };
   showPreview(renderSchulcard(gData, gImages));
   document.getElementById('refineBox').classList.add('show');
-  // Open archive panel stays open, just scroll to preview
 }
 
-function renderArchive() {
-  const archive = loadArchive();
-  const list = document.getElementById('archiveList');
+function renderArchive(archive) {
+  const list  = document.getElementById('archiveList');
   const count = document.getElementById('archCount');
   if (!list) return;
   if (count) count.textContent = archive.length ? '(' + archive.length + ')' : '';
@@ -638,14 +644,25 @@ function renderArchive() {
 
 function toggleArchive() {
   const panel = document.getElementById('archivePanel');
-  const icon = document.getElementById('archToggleIcon');
-  const open = panel.style.display === 'none';
+  const icon  = document.getElementById('archToggleIcon');
+  const open  = panel.style.display === 'none';
   panel.style.display = open ? 'block' : 'none';
   if (icon) icon.textContent = open ? '▲' : '▼';
+  // On first open: load from server and merge
+  if (open) refreshArchiveFromServer();
 }
 
-// Init on load
-renderArchive();
+async function refreshArchiveFromServer() {
+  const result = await archiveApi('GET');
+  if (!result || !result.archive) return;
+  // Merge: server is source of truth, local cache gets updated
+  lsSave(result.archive);
+  renderArchive(result.archive);
+}
+
+// Init: show local cache immediately, then sync from server
+renderArchive(lsLoad());
+refreshArchiveFromServer();
 
 // ── DEMO ──────────────────────────────────────────────────────────────────────
 async function generateDemo() {
