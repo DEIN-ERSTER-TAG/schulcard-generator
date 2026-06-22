@@ -9,7 +9,9 @@ const bedrock = new BedrockRuntimeClient({
   }
 });
 
-async function callBedrock(systemPrompt, userPrompt) {
+const SYSTEM_PROMPT = `Du bist ein Experte für deutsche Ausbildungsberufe, Duale Studiengänge und Unternehmen. Du erstellst Inhalte für Schulcards – visuelle Berufserkundungskarten für Schüler*innen (14–16 Jahre). WICHTIGSTE REGELN: (1) Alle Inhalte müssen 100% zum genannten Beruf und Unternehmen passen. Verwende niemals Inhalte aus anderen Berufsfeldern. (2) Verwende KEIN Markdown in Textwerten (keine **Fettung**, keine Unterstriche). (3) Gendering: IMMER *in-Schreibweise (Mechaniker*in, Informatiker*in), niemals /in, (in) oder andere Formen.`;
+
+async function callBedrock(userPrompt) {
   const modelId = process.env.BEDROCK_MODEL_ID || 'us.anthropic.claude-3-5-sonnet-20241022-v2:0';
   const res = await bedrock.send(new InvokeModelCommand({
     modelId,
@@ -18,7 +20,7 @@ async function callBedrock(systemPrompt, userPrompt) {
     body: JSON.stringify({
       anthropic_version: 'bedrock-2023-05-31',
       max_tokens: 8096,
-      system: systemPrompt,
+      system: SYSTEM_PROMPT,
       messages: [{ role: 'user', content: userPrompt }]
     })
   }));
@@ -26,15 +28,48 @@ async function callBedrock(systemPrompt, userPrompt) {
   return body.content[0].text;
 }
 
-function buildPrompt(companyName, jobTitle, street, zip, city) {
+async function fetchUrlContent(url) {
+  try {
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; SchulcardBot/1.0)' },
+      signal: AbortSignal.timeout(8000)
+    });
+    if (!res.ok) return null;
+    const html = await res.text();
+    const text = html
+      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 4000);
+    return text || null;
+  } catch {
+    return null;
+  }
+}
+
+function buildPrompt(companyName, jobTitle, street, zip, city, trainingType, urlContent) {
+  const isStudium = trainingType === 'duales-studium';
+  const typeLabel = isStudium ? 'Duales Studium' : 'Ausbildung';
+  const personLabel = isStudium ? 'Studierende*r' : 'Azubi';
+  const urlSection = urlContent
+    ? `\nZUSATZINFOS von der angegebenen URL (nutze diese für präzisere Inhalte):\n"""\n${urlContent}\n"""\n`
+    : '';
+
   return `Du erstellst Inhalte für eine "Schulcard" – eine visuelle Berufserkundungskarte für deutsche Schülerinnen und Schüler (14–16 Jahre).
 
 WICHTIG: Erstelle alle Inhalte AUSSCHLIESSLICH für dieses konkrete Unternehmen und diesen konkreten Beruf:
 - Unternehmen: ${companyName}
-- Ausbildungsberuf: ${jobTitle}
+- Beruf/Studiengang: ${jobTitle}
+- Art: ${typeLabel}
 - Adresse: ${street}, ${zip} ${city}
+${urlSection}
+Nutze dein Wissen über ${companyName}. Wenn du keine gesicherten Infos hast, erfinde realistische Inhalte passend zu Beruf und Branche. Niemals Inhalte aus anderen Berufsfeldern verwenden.
 
-Nutze dein Wissen über ${companyName} (Branche, Geschichte, Produkte, Werte, Größe). Wenn du keine gesicherten Infos hast, erfinde realistische, glaubwürdige Inhalte passend zu genau diesem Beruf und dieser Branche. Niemals Inhalte aus anderen Berufsfeldern verwenden.
+GENDERING: Verwende IMMER die *in-Schreibweise (Mechaniker*in). Niemals /in, (in) oder andere Formen.
+
+${isStudium ? `DUALES STUDIUM: Es handelt sich um ein Duales Studium, nicht um eine klassische Ausbildung. Verwende "${personLabel}" statt "Azubi". Das Studium endet mit einem Bachelor-Abschluss. Mindestvoraussetzung ist Abitur oder Fachabitur. Vergütung ist höher als bei Ausbildung. WICHTIG: Formuliere natürlich – nicht robotisch "Duales Studium ${jobTitle}" in jedem Satz, sondern fließend in die Texte eingebettet.` : ''}
 
 Sprache: Deutsch, Du-Form, jugendlich aber seriös, für 14–16-Jährige.
 
@@ -43,26 +78,27 @@ Antworte NUR mit validem JSON – kein Markdown, keine Erklärungen:
 {
   "pageTitle": "Schulcard – ${jobTitle} bei ${companyName}",
   "companyName": "Vollständiger Name von ${companyName}",
-  "companyNameShort": "Kurzname von ${companyName} ohne Rechtsform",
-  "jobTitle": "${jobTitle} mit Genderstern (z.B. Kosmetiker*in)",
-  "jobTitleShort": "Kurzform von ${jobTitle} MIT Genderstern – PFLICHT",
+  "companyNameShort": "Kurzname ohne Rechtsform",
+  "jobTitle": "${jobTitle} mit *in-Genderstern (z.B. Informatiker*in)",
+  "jobTitleShort": "Kurzform mit *in-Genderstern – PFLICHT",
+  "trainingType": "${typeLabel}",
   "website": "Offizielle Website von ${companyName}",
   "address": "${street} · ${zip} ${city}",
-  "personName": "Passender Vorname für eine*n Azubi bei ${companyName}",
-  "personRole": "Azubi ${jobTitle} · ${companyName}",
-  "companyDescription": "Was ${companyName} macht – max 18 Wörter, direkt und ansprechend, passend zur Branche",
+  "personName": "Passender Vorname für eine*n ${personLabel} bei ${companyName}",
+  "personRole": "${personLabel} ${jobTitle} · ${companyName}",
+  "companyDescription": "Was ${companyName} macht – max 18 Wörter, direkt und ansprechend",
   "jobDescription": "Was man als ${jobTitle} bei ${companyName} konkret macht – 2 Sätze, Du-Form, berufsspezifisch",
   "importanceText": "Warum ${jobTitle} wichtig ist – 2 emotionale Sätze mit einem Highlight-Wort, berufsspezifisch",
-  "importanceHighlight": "1–3 Wörter die den Kern des Berufs ${jobTitle} beschreiben",
+  "importanceHighlight": "1–3 Wörter die den Kern des Berufs beschreiben",
   "photoCaptions": ["Bildunterschrift 1 passend zu ${jobTitle}", "Bildunterschrift 2", "Bildunterschrift 3", "Bildunterschrift 4"],
-  "tasksDo": ["Typische Aufgabe 1 als ${jobTitle}", "Typische Aufgabe 2", "Typische Aufgabe 3", "Typische Aufgabe 4", "Typische Aufgabe 5"],
-  "tasksDont": ["Was man als ${jobTitle} NICHT macht 1", "Nicht-Aufgabe 2", "Nicht-Aufgabe 3", "Nicht-Aufgabe 4"],
-  "education": "NUR der Abschlussname, z.B. 'Hauptschulabschluss' oder 'Mittlere Reife'. Kein weiterer Text, keine Erklärungen.",
-  "salaryY1": 900,
-  "salaryY2": 1000,
-  "salaryY3": 1100,
+  "tasksDo": ["Typische Aufgabe 1", "Aufgabe 2", "Aufgabe 3", "Aufgabe 4", "Aufgabe 5"],
+  "tasksDont": ["Was man NICHT macht 1", "Nicht-Aufgabe 2", "Nicht-Aufgabe 3", "Nicht-Aufgabe 4"],
+  "education": "${isStudium ? 'Abitur oder Fachabitur' : 'NUR der Abschlussname, z.B. Hauptschulabschluss oder Mittlere Reife. Kein weiterer Text.'}",
+  "salaryY1": ${isStudium ? 1200 : 900},
+  "salaryY2": ${isStudium ? 1300 : 1000},
+  "salaryY3": ${isStudium ? 1400 : 1100},
   "workHours": "Typische Wochenstunden für ${jobTitle}",
-  "duration": "Ausbildungsdauer für ${jobTitle}",
+  "duration": "${isStudium ? 'z.B. 3,5 Jahre' : 'z.B. 3 Jahre'}",
   "equipment": [
     {"name": "Arbeitsutensil 1 typisch für ${jobTitle}", "desc": "Wozu man es braucht"},
     {"name": "Arbeitsutensil 2", "desc": "Wozu man es braucht"},
@@ -80,11 +116,7 @@ Antworte NUR mit validem JSON – kein Markdown, keine Erklärungen:
   "internshipDesc": "Wie ein Praktikum als ${jobTitle} bei ${companyName} aussieht",
   "applyDate": "01.08.2026",
   "applyUrl": "Bewerbungsseite von ${companyName}",
-  "socialInstagram": "",
-  "socialFacebook": "",
-  "socialYoutube": "",
-  "socialLinkedin": "",
-  "brandColor": "Primärfarbe von ${companyName} als Hex-Code (recherchieren oder sinnvoll wählen)",
+  "brandColor": "Primärfarbe von ${companyName} als Hex-Code",
   "brandColorLight": "Helle Version der Primärfarbe als Hex-Code",
   "quiz": [
     {
@@ -93,8 +125,8 @@ Antworte NUR mit validem JSON – kein Markdown, keine Erklärungen:
       "q": "Interessante Frage über ${companyName} – nur eine Aussage ist wahr",
       "opts": [
         {"lbl": "AUSSAGE 1", "txt": "Wahre Aussage über ${companyName}", "ok": true},
-        {"lbl": "AUSSAGE 2", "txt": "Falsche aber plausible Aussage über ${companyName}", "ok": false},
-        {"lbl": "AUSSAGE 3", "txt": "Falsche aber plausible Aussage über ${companyName}", "ok": false}
+        {"lbl": "AUSSAGE 2", "txt": "Falsche aber plausible Aussage", "ok": false},
+        {"lbl": "AUSSAGE 3", "txt": "Falsche aber plausible Aussage", "ok": false}
       ],
       "fbOk": "Richtig! Kurze Erklärung warum diese Aussage stimmt.",
       "fbErr": "Leider falsch. Die richtige Antwort mit Erklärung."
@@ -116,10 +148,10 @@ Antworte NUR mit validem JSON – kein Markdown, keine Erklärungen:
       "type": "schaetz",
       "label": "SCHÄTZFRAGE",
       "q": "Interessante Schätzfrage passend zu ${jobTitle} oder ${companyName}",
-      "unit": "sinnvolle Einheit für die Schätzfrage",
+      "unit": "sinnvolle Einheit",
       "answer": 50,
       "tol": 15,
-      "fbOk": "Gut geschätzt! Kurze Erklärung mit Berufsbezug.",
+      "fbOk": "Gut geschätzt! Kurze Erklärung.",
       "fbClose": "Nah dran! Die genaue Zahl mit Kontext.",
       "fbErr": "Die Antwort mit Erklärung und Berufsbezug."
     }
@@ -131,13 +163,24 @@ module.exports = async (req, res) => {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const { companyName, jobTitle, street = '', zip = '', city = '' } = req.body;
+    const { companyName, jobTitle, street = '', zip = '', city = '', trainingType = 'ausbildung', contextUrl = '' } = req.body;
     if (!companyName || !jobTitle) return res.status(400).json({ error: 'Unternehmensname und Beruf sind Pflicht.' });
 
-    const system = `Du bist ein Experte für deutsche Ausbildungsberufe und Unternehmen. Du erstellst Inhalte für Schulcards – visuelle Berufserkundungskarten für Schüler*innen (14–16 Jahre). WICHTIGSTE REGEL: Alle Inhalte müssen 100% zum genannten Beruf und Unternehmen passen. Verwende niemals Inhalte aus anderen Berufsfeldern. Verwende KEIN Markdown in den Textwerten (keine **Fettung**, keine ++Hervorhebung++, keine Unterstriche).`;
-    let raw = await callBedrock(system, buildPrompt(companyName, jobTitle, street, zip, city));
+    const urlContent = contextUrl ? await fetchUrlContent(contextUrl) : null;
+    const userPrompt = buildPrompt(companyName, jobTitle, street, zip, city, trainingType, urlContent);
+
+    let raw = await callBedrock(userPrompt);
     raw = raw.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim();
-    const data = JSON.parse(raw);
+
+    let data;
+    try {
+      data = JSON.parse(raw);
+    } catch {
+      raw = await callBedrock(userPrompt + '\n\nWICHTIG: Antworte AUSSCHLIESSLICH mit rohem JSON-Objekt. Kein Text davor oder danach, keine Codeblöcke.');
+      raw = raw.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim();
+      data = JSON.parse(raw);
+    }
+
     res.json({ data });
   } catch (err) {
     console.error(err);

@@ -89,6 +89,32 @@ textarea:focus{border-color:#F5C800}
 .ost.active{color:#00B4D8;font-weight:600}
 .ost.done{color:#4ade80}
 .ost-dot{width:7px;height:7px;border-radius:50%;background:currentColor;flex-shrink:0}
+/* ── TYPE TOGGLE ── */
+.type-toggle{display:flex;gap:0;margin-top:10px;border-radius:8px;overflow:hidden;border:1.5px solid #e0e0e0}
+.ttog{flex:1;padding:8px;border:none;background:#f5f5f5;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;color:#888;transition:background .15s,color .15s}
+.ttog.active{background:#1a1a2e;color:#fff}
+/* ── URL INPUT ── */
+.url-hint{font-size:10px;color:#aaa;margin-top:3px}
+/* ── ARCHIVE ── */
+.archive-section{border-top:2px solid #e8e8e8;background:#fafafa;margin-top:auto}
+.arch-empty{font-size:11px;color:#bbb;text-align:center;padding:10px 0}
+.arch-item{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #f0f0f0;cursor:pointer}
+.arch-item:last-child{border-bottom:none}
+.arch-item:hover .arch-names .arch-company{color:#00B4D8}
+.arch-names{flex:1;min-width:0}
+.arch-company{font-size:12px;font-weight:700;color:#1a1a2e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:color .15s}
+.arch-job{font-size:10px;color:#888;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.arch-badge{font-size:9px;background:#e8e8e8;color:#666;border-radius:50px;padding:2px 7px;flex-shrink:0;white-space:nowrap}
+.arch-badge.dual{background:#e0f7fc;color:#007a94}
+.arch-del{width:20px;height:20px;border-radius:50%;background:#f0f0f0;border:none;color:#aaa;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s,color .15s}
+.arch-del:hover{background:#fdecea;color:#e53e3e}
+/* ── REFINE LOG ── */
+.rlog{display:flex;flex-direction:column;gap:4px;margin-top:8px}
+.rlog-item{font-size:10px;color:#888;background:#f7f7f5;border-radius:6px;padding:5px 8px;line-height:1.4;border-left:2px solid #e0b400}
+.rlog-time{color:#ccc;margin-right:5px;font-variant-numeric:tabular-nums}
+/* ── VALIDATION ── */
+input.v-valid{border-color:#4ade80}
+input.v-invalid{border-color:#ef4444}
 </style>
 </head>
 <body>
@@ -109,15 +135,22 @@ textarea:focus{border-color:#F5C800}
     </div>
 
     <div class="sb-section">
-      <div class="sb-title"><span class="step-n">1</span>Unternehmen & Beruf</div>
+      <div class="sb-title"><span class="step-n" id="stepN1">1</span>Unternehmen & Beruf</div>
       <label>Unternehmensname *</label>
-      <input type="text" id="fCompany" placeholder="z.B. PORR Deutschland GmbH">
+      <input type="text" id="fCompany" placeholder="z.B. PORR Deutschland GmbH" oninput="updateProgress()" onblur="validateField(this)">
       <label>Ausbildungsberuf / Duales Studium *</label>
-      <input type="text" id="fJob" placeholder="z.B. Straßenbauer*in">
+      <input type="text" id="fJob" placeholder="z.B. Straßenbauer*in" oninput="updateProgress()" onblur="validateField(this)">
+      <div class="type-toggle">
+        <button class="ttog active" id="togAusb" onclick="setTrainingType('ausbildung')">Ausbildung</button>
+        <button class="ttog" id="togDual" onclick="setTrainingType('duales-studium')">Duales Studium</button>
+      </div>
+      <label>Link zur Stelle / Website <span style="color:#bbb;font-weight:400">(optional)</span></label>
+      <input type="url" id="fUrl" placeholder="https://…">
+      <div class="url-hint">KI liest die Seite für präzisere Inhalte</div>
     </div>
 
     <div class="sb-section">
-      <div class="sb-title"><span class="step-n">2</span>Adresse</div>
+      <div class="sb-title"><span class="step-n" id="stepN2">2</span>Adresse</div>
       <label>Straße + Hausnummer</label>
       <input type="text" id="fStreet" placeholder="Musterstraße 1">
       <div class="addr-row">
@@ -127,7 +160,7 @@ textarea:focus{border-color:#F5C800}
     </div>
 
     <div class="sb-section">
-      <div class="sb-title"><span class="step-n">3</span>Fotos</div>
+      <div class="sb-title"><span class="step-n" id="stepN3">3</span>Fotos</div>
 
       <label>Unternehmenslogo</label>
       <div class="upload-zone">
@@ -189,6 +222,19 @@ textarea:focus{border-color:#F5C800}
       <textarea id="fRefine" placeholder='z.B. "Ändere das Gehalt auf 1.400 €" oder "Füge Teamwork als Eigenschaft hinzu"'></textarea>
       <button class="btn-refine" onclick="refine()">🔄 Anpassen</button>
       <button class="btn-dl" onclick="download()">⬇ HTML-Datei herunterladen</button>
+      <div class="rlog" id="refineLog"></div>
+    </div>
+
+    <div class="sb-section archive-section">
+      <div class="sb-title" style="cursor:pointer;user-select:none" onclick="toggleArchive()">
+        <span class="step-n" style="background:#888">📁</span>
+        Bereits erstellt
+        <span id="archCount" style="color:#aaa;font-weight:400;font-size:10px;margin-left:4px"></span>
+        <span id="archToggleIcon" style="margin-left:auto;color:#aaa;font-size:12px">▼</span>
+      </div>
+      <div id="archivePanel" style="display:none">
+        <div id="archiveList"><div class="arch-empty">Noch keine Schulcards erstellt</div></div>
+      </div>
     </div>
   </div>
 
@@ -234,6 +280,7 @@ textarea:focus{border-color:#F5C800}
 let gData = null;
 let gImages = { hero: '', story: [], clothing: '', logo: '' };
 let activeZone = null;
+let gTrainingType = 'ausbildung';
 
 // ── CLIPBOARD PASTE ───────────────────────────────────────────────────────────
 const ZONE_LABELS = { logo:'Unternehmenslogo', hero:'Hero-Foto', story:'Arbeitsumfeld-Foto', clothing:'Arbeitskleidung' };
@@ -405,17 +452,20 @@ async function generate() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        companyName: company,
-        jobTitle:    job,
-        street:      document.getElementById('fStreet').value.trim(),
-        zip:         document.getElementById('fZip').value.trim(),
-        city:        document.getElementById('fCity').value.trim(),
+        companyName:  company,
+        jobTitle:     job,
+        street:       document.getElementById('fStreet').value.trim(),
+        zip:          document.getElementById('fZip').value.trim(),
+        city:         document.getElementById('fCity').value.trim(),
+        trainingType: gTrainingType,
+        contextUrl:   document.getElementById('fUrl').value.trim(),
       })
     });
     const result = await resp.json();
     if (!resp.ok) throw new Error(result.error || 'Serverfehler');
 
     gData = result.data;
+    saveToArchive(gData);
     showPreview(renderSchulcard(gData, gImages));
     document.getElementById('refineBox').classList.add('show');
   } catch (e) {
@@ -443,6 +493,7 @@ async function refine() {
     if (!resp.ok) throw new Error(result.error || 'Serverfehler');
 
     gData = result.data;
+    addRefineLog(instr);
     showPreview(renderSchulcard(gData, gImages));
     document.getElementById('fRefine').value = '';
   } catch (e) {
@@ -482,6 +533,120 @@ function showPreview(html) {
 function showErr(msg) { const b = document.getElementById('errBox'); b.textContent = '⚠️ ' + msg; b.classList.add('show'); }
 function hideErr() { document.getElementById('errBox').classList.remove('show'); }
 
+// ── TRAINING TYPE ─────────────────────────────────────────────────────────────
+function setTrainingType(type) {
+  gTrainingType = type;
+  document.getElementById('togAusb').classList.toggle('active', type === 'ausbildung');
+  document.getElementById('togDual').classList.toggle('active', type === 'duales-studium');
+}
+
+// ── VALIDATION ────────────────────────────────────────────────────────────────
+function validateField(el) {
+  const ok = el.value.trim().length > 0;
+  el.classList.toggle('v-valid', ok);
+  el.classList.toggle('v-invalid', !ok);
+}
+
+// ── SIDEBAR PROGRESS ──────────────────────────────────────────────────────────
+function updateProgress() {
+  const s1Done = document.getElementById('fCompany').value.trim() && document.getElementById('fJob').value.trim();
+  const n1 = document.getElementById('stepN1');
+  if (n1) { n1.textContent = s1Done ? '✓' : '1'; n1.classList.toggle('done', !!s1Done); }
+}
+
+// ── REFINE LOG ────────────────────────────────────────────────────────────────
+function addRefineLog(instruction) {
+  const log = document.getElementById('refineLog');
+  if (!log) return;
+  const time = new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+  const item = document.createElement('div');
+  item.className = 'rlog-item';
+  item.innerHTML = '<span class="rlog-time">' + time + '</span>' + instruction;
+  log.insertBefore(item, log.firstChild);
+  while (log.children.length > 5) log.removeChild(log.lastChild);
+}
+
+// ── ARCHIVE ───────────────────────────────────────────────────────────────────
+const ARCHIVE_KEY = 'schulcard_archive';
+
+function loadArchive() {
+  try { return JSON.parse(localStorage.getItem(ARCHIVE_KEY) || '[]'); } catch { return []; }
+}
+
+function saveToArchive(data) {
+  const archive = loadArchive();
+  // Update existing entry if same company+job, else prepend
+  const idx = archive.findIndex(e => e.companyName === data.companyName && e.jobTitle === data.jobTitle);
+  const entry = {
+    id: idx >= 0 ? archive[idx].id : Date.now().toString(),
+    createdAt: new Date().toLocaleString('de-DE', { day:'2-digit', month:'2-digit', year:'2-digit', hour:'2-digit', minute:'2-digit' }),
+    companyName: data.companyName || '',
+    jobTitle: data.jobTitle || '',
+    trainingType: data.trainingType || 'Ausbildung',
+    data: data
+  };
+  if (idx >= 0) archive.splice(idx, 1);
+  archive.unshift(entry);
+  if (archive.length > 20) archive.splice(20);
+  try {
+    localStorage.setItem(ARCHIVE_KEY, JSON.stringify(archive));
+  } catch {
+    // Storage full — trim and retry
+    archive.splice(10);
+    try { localStorage.setItem(ARCHIVE_KEY, JSON.stringify(archive)); } catch {}
+  }
+  renderArchive();
+}
+
+function deleteFromArchive(id) {
+  const archive = loadArchive().filter(e => e.id !== id);
+  try { localStorage.setItem(ARCHIVE_KEY, JSON.stringify(archive)); } catch {}
+  renderArchive();
+}
+
+function loadFromArchive(id) {
+  const entry = loadArchive().find(e => e.id === id);
+  if (!entry) return;
+  gData = entry.data;
+  gImages = { hero: '', story: [], clothing: '', logo: '' };
+  showPreview(renderSchulcard(gData, gImages));
+  document.getElementById('refineBox').classList.add('show');
+  // Open archive panel stays open, just scroll to preview
+}
+
+function renderArchive() {
+  const archive = loadArchive();
+  const list = document.getElementById('archiveList');
+  const count = document.getElementById('archCount');
+  if (!list) return;
+  if (count) count.textContent = archive.length ? '(' + archive.length + ')' : '';
+  if (!archive.length) {
+    list.innerHTML = '<div class="arch-empty">Noch keine Schulcards erstellt</div>';
+    return;
+  }
+  list.innerHTML = archive.map(e =>
+    '<div class="arch-item" onclick="loadFromArchive(\'' + e.id + '\')">' +
+    '<div class="arch-names">' +
+    '<div class="arch-company">' + e.companyName + '</div>' +
+    '<div class="arch-job">' + e.jobTitle + '</div>' +
+    '</div>' +
+    '<div class="arch-badge' + (e.trainingType === 'Duales Studium' ? ' dual' : '') + '">' + (e.trainingType || 'Ausbildung') + '</div>' +
+    '<button class="arch-del" onclick="event.stopPropagation();deleteFromArchive(\'' + e.id + '\')" title="Löschen">✕</button>' +
+    '</div>'
+  ).join('');
+}
+
+function toggleArchive() {
+  const panel = document.getElementById('archivePanel');
+  const icon = document.getElementById('archToggleIcon');
+  const open = panel.style.display === 'none';
+  panel.style.display = open ? 'block' : 'none';
+  if (icon) icon.textContent = open ? '▲' : '▼';
+}
+
+// Init on load
+renderArchive();
+
 // ── DEMO ──────────────────────────────────────────────────────────────────────
 async function generateDemo() {
   const company = document.getElementById('fCompany').value.trim() || 'PORR Deutschland GmbH';
@@ -502,10 +667,10 @@ async function generateDemo() {
     companyName: company, companyNameShort: company.split(' ')[0],
     jobTitle: job, jobTitleShort: job,
     website: 'https://www.beispiel-firma.de', address: 'Musterstraße 1 · 60528 Frankfurt',
-    personName: 'Lena M.', personRole: `Azubi ${job.replace('*in','')} · ${company.split(' ')[0]}`,
+    personName: 'Lena M.', personRole: `Azubi ${job} · ${company.split(' ')[0]}`,
     companyDescription: `Ein führendes Unternehmen mit Leidenschaft für Qualität und Innovation.`,
-    jobDescription: `Als ${job.replace('*in','*in')} übernimmst du vielseitige Aufgaben und lernst alles, was du für diesen Beruf brauchst. Du arbeitest in einem engagierten Team und entwickelst dich Schritt für Schritt zur Fachkraft.`,
-    importanceText: `${job.replace('*in','*innen')} leisten jeden Tag einen wichtigen Beitrag für Menschen und Gesellschaft. Du machst den Unterschied.`,
+    jobDescription: `Als ${job} übernimmst du vielseitige Aufgaben und lernst alles, was du für diesen Beruf brauchst. Du arbeitest in einem engagierten Team und entwickelst dich Schritt für Schritt zur Fachkraft.`,
+    importanceText: `${job} leistet jeden Tag einen wichtigen Beitrag für Menschen und Gesellschaft. Du machst den Unterschied.`,
     importanceHighlight: 'den Unterschied',
     photoCaptions: ['Im Arbeitsalltag', 'Teamarbeit', 'Moderne Ausstattung', 'Abschluss & Karriere'],
     tasksDo: ['Fachaufgaben übernehmen', 'Im Team arbeiten', 'Neues lernen', 'Projekte begleiten', 'Qualität sichern'],
@@ -547,10 +712,12 @@ async function generateDemo() {
 
 function cleanText(txt) {
   let t = (txt || '')
+    .replace(/(\w)\*in\b/g, '$1\x00in')  // protect gender star
     .replace(/\*\*([^*]+)\*\*/g, '$1')
     .replace(/\+\+([^+]+)\+\+/g, '$1')
     .replace(/__([^_]+)__/g, '$1')
-    .replace(/[*_]([^*_\n]+)[*_]/g, '$1');
+    .replace(/[*_]([^*_\n]+)[*_]/g, '$1')
+    .replace(/\x00/g, '*');              // restore gender star
   const target = Math.ceil(t.length * 2 / 3);
   if (t.length <= target) return t.trim();
   for (let i = target; i >= Math.max(0, target - 80); i--) {
@@ -599,12 +766,12 @@ function renderSchulcard(d, imgs) {
   ).join('');
 
   const social = [
-    d.website        ? '<a href="' + d.website        + '" target="_blank" class="soc" title="Website">🌐</a>' : '',
-    d.socialInstagram? '<a href="' + d.socialInstagram + '" target="_blank" class="soc" title="Instagram">📸</a>' : '',
-    d.socialFacebook ? '<a href="' + d.socialFacebook  + '" target="_blank" class="soc" title="Facebook">👍</a>' : '',
-    d.socialYoutube  ? '<a href="' + d.socialYoutube   + '" target="_blank" class="soc" title="YouTube">▶️</a>' : '',
-    d.socialLinkedin ? '<a href="' + d.socialLinkedin  + '" target="_blank" class="soc" title="LinkedIn">💼</a>' : '',
-  ].filter(Boolean).join('');
+    '<span class="soc" title="Website">🌐</span>',
+    '<span class="soc" title="Instagram">📸</span>',
+    '<span class="soc" title="Facebook">👍</span>',
+    '<span class="soc" title="YouTube">▶️</span>',
+    '<span class="soc" title="LinkedIn">💼</span>',
+  ].join('');
 
   const cleanJobDesc = cleanText(d.jobDescription);
   const cleanImpText = cleanText(d.importanceText);
@@ -830,7 +997,7 @@ body{font-family:'DM Sans',sans-serif;background:#f0f0f0;min-height:100vh;displa
   .seq-img{max-width:100%}
   .str{padding:24px 12px}
   .fg{gap:8px}
-  .fc{width:calc(33.33% - 6px)}
+  .fc{width:calc(33.33% - 6px);aspect-ratio:unset;min-height:120px}
   .scta{padding:20px 12px}
   .scta-g{grid-template-columns:1fr}
   .sbar{padding:9px 14px}
