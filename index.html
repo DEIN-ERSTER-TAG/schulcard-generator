@@ -465,7 +465,7 @@ async function generate() {
     if (!resp.ok) throw new Error(result.error || 'Serverfehler');
 
     gData = result.data;
-    saveToArchive(gData);
+    saveToArchive(gData, renderSchulcard(gData, gImages));
     showPreview(renderSchulcard(gData, gImages));
     document.getElementById('refineBox').classList.add('show');
   } catch (e) {
@@ -585,15 +585,16 @@ async function archiveApi(method, body = null) {
   } catch { return null; }
 }
 
-async function saveToArchive(data) {
+async function saveToArchive(data, html) {
   const existing = lsLoad();
   const idx = existing.findIndex(e => e.companyName === data.companyName && e.jobTitle === data.jobTitle);
   const entry = {
     id: idx >= 0 ? existing[idx].id : Date.now().toString(),
-    createdAt: new Date().toLocaleString('de-DE', { day:'2-digit', month:'2-digit', year:'2-digit', hour:'2-digit', minute:'2-digit' }),
+    createdAt: new Date().toISOString(),
     companyName: data.companyName || '',
     jobTitle:    data.jobTitle    || '',
     trainingType: data.trainingType || 'Ausbildung',
+    html: html || null,
     data: data
   };
   if (idx >= 0) existing.splice(idx, 1);
