@@ -1,18 +1,23 @@
 require('dotenv').config();
 const { BedrockRuntimeClient, InvokeModelCommand } = require('@aws-sdk/client-bedrock-runtime');
 
+// Neue Bedrock-API-Keys (AWS_BEARER_TOKEN_BEDROCK) haben Vorrang - dann
+// erkennt der SDK-Default-Provider sie automatisch. Fallback auf das alte
+// Access-Key/Secret-Paar, falls kein Bearer-Token gesetzt ist.
 const bedrock = new BedrockRuntimeClient({
   region: process.env.AWS_REGION || 'eu-central-1',
-  credentials: {
-    accessKeyId:     process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  }
+  ...(process.env.AWS_BEARER_TOKEN_BEDROCK ? {} : {
+    credentials: {
+      accessKeyId:     process.env.AWS_ACCESS_KEY_ID,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    },
+  }),
 });
 
 const SYSTEM_PROMPT = `Du bist ein Experte für deutsche Ausbildungsberufe, Duale Studiengänge und Unternehmen. Du erstellst Inhalte für Schulcards – visuelle Berufserkundungskarten für Schüler*innen (14–16 Jahre). WICHTIGSTE REGELN: (1) Alle Inhalte müssen 100% zum genannten Beruf und Unternehmen passen. Verwende niemals Inhalte aus anderen Berufsfeldern. (2) Verwende KEIN Markdown in Textwerten (keine **Fettung**, keine Unterstriche). (3) Gendering: IMMER *in-Schreibweise (Mechaniker*in, Informatiker*in), niemals /in, (in) oder andere Formen.`;
 
 async function callBedrock(userPrompt) {
-  const modelId = process.env.BEDROCK_MODEL_ID || 'us.anthropic.claude-3-5-sonnet-20241022-v2:0';
+  const modelId = process.env.BEDROCK_MODEL_ID || 'eu.anthropic.claude-sonnet-4-6';
   const res = await bedrock.send(new InvokeModelCommand({
     modelId,
     contentType: 'application/json',
