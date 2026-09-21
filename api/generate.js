@@ -104,6 +104,8 @@ Antworte NUR mit validem JSON – kein Markdown, keine Erklärungen:
   "salaryY3": ${isStudium ? 1400 : 1100},
   "workHours": "Typische Wochenstunden für ${jobTitle}",
   "duration": "${isStudium ? 'z.B. 3,5 Jahre' : 'z.B. 3 Jahre'}",
+  "vacation": "Typische Anzahl Urlaubstage pro Jahr für ${jobTitle}, NUR eine Zahl zwischen 24 und 30, z.B. 28",
+  "weekend": "Ob bei ${jobTitle} typischerweise auch am Wochenende gearbeitet wird – NUR 'Ja' oder 'Nein'",
   "equipment": [
     {"name": "Arbeitsutensil 1 typisch für ${jobTitle}", "desc": "Wozu man es braucht"},
     {"name": "Arbeitsutensil 2", "desc": "Wozu man es braucht"},
@@ -121,8 +123,6 @@ Antworte NUR mit validem JSON – kein Markdown, keine Erklärungen:
   "internshipDesc": "Wie ein Praktikum als ${jobTitle} bei ${companyName} aussieht",
   "applyDate": "01.08.2026",
   "applyUrl": "Bewerbungsseite von ${companyName}",
-  "brandColor": "Primärfarbe von ${companyName} als Hex-Code",
-  "brandColorLight": "Helle Version der Primärfarbe als Hex-Code",
   "quiz": [
     {
       "type": "wf",
