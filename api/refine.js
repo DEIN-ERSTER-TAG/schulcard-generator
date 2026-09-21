@@ -14,6 +14,11 @@ const bedrock = new BedrockRuntimeClient({
   }),
 });
 
+// Feste Eigenschaften-Liste (deckungsgleich mit den Icons in "Icons Eigenschaften-update" /
+// eigenschaften-icons.js) – falls die "traits" beim Refine geändert werden, muss der Name
+// weiterhin exakt aus dieser Liste kommen, sonst fehlt in der Schulcard das passende Icon.
+const TRAIT_NAMES = ["Analytisches Denken", "Arbeitet gerne im Büro", "Ausdauer", "Belastbarkeit", "Beobachtungsgabe", "Beratungskompetenz", "Bleibt ruhig", "Bühnenpräsenz", "Computer-Fan", "Ehrlichkeit", "Empathie", "Entscheidungsfreude", "Feinschmecker", "Findet Fehler", "Führungsstärke", "Geduld", "Genauigkeit", "Gern unterwegs", "Gern an der frischen Luft", "Geschickte Hände", "Grüner Daumen", "Gutes Farbsehen", "Handwerkliches Geschick", "Hilfsbereitschaft", "Hitzetoleranz", "Hygienebewusstsein", "Kommunikationsstärke", "Konzentrationsfähigkeit", "Körperliche Belastbarkeit", "Kreativität", "Leseratte", "Logisches Denken", "Maschinenverständnis", "Mathematisches Denken", "Multitaskingfähigkeit", "Mut", "Naturverbundenheit", "Offen für Schichtdienst", "Organisationsgeschick", "Orientierungssinn", "Planungsfähigkeit", "Präzision", "Qualitätsbewusstsein", "Räumliches Vorstellungsvermögen", "Reaktionsschnelligkeit", "Rechtliches Verständnis", "Regeltreue", "Respektvoll", "Schwindelfrei", "Selbstständigkeit", "Serviceorientierung", "Sicherheitsbewusstsein", "Sorgfalt", "Sprachtalent", "Stressresistenz", "Systhematisches Denken", "Teamfähigkeit", "Technikbegeisterung", "Technisches Verständnis", "Tierliebe", "Umweltbewusstsein", "Überblick", "Verantwortungsbewusstsein", "Verkaufstalent", "Vertrauenswürdigkeit", "Wetterfestigkeit", "Zahlenverständnis", "Zeichentalent", "Zusammenhänge erkennen", "Zuverlässigkeit", "verhandlungsgeschick"];
+
 const SYSTEM_PROMPT = `Du bist ein Experte für deutsche Ausbildungsberufe, Duale Studiengänge und Unternehmen. Du erstellst und pflegst Inhalte für Schulcards – visuelle Berufserkundungskarten für Schüler*innen (14–16 Jahre). WICHTIGSTE REGELN: (1) Alle Inhalte müssen 100% zum genannten Beruf und Unternehmen passen. Verwende niemals Inhalte aus anderen Berufsfeldern. (2) Verwende KEIN Markdown in Textwerten (keine **Fettung**, keine Unterstriche). (3) Gendering: IMMER *in-Schreibweise (Mechaniker*in, Informatiker*in), niemals /in, (in) oder andere Formen. (4) Behalte alle nicht geänderten Felder exakt bei.`;
 
 async function callBedrock(prompt) {
@@ -40,7 +45,7 @@ module.exports = async (req, res) => {
     const { currentData, instruction } = req.body;
     if (!instruction) return res.status(400).json({ error: 'Keine Anweisung angegeben.' });
 
-    const prompt = `Du hast diese Schulcard-Daten generiert:\n\n${JSON.stringify(currentData, null, 2)}\n\nDer Nutzer möchte folgende Änderungen:\n"${instruction}"\n\nPasse nur die betroffenen Felder an, behalte alle anderen exakt bei. Antworte NUR mit dem vollständigen aktualisierten JSON – kein Markdown, keine Erklärungen.`;
+    const prompt = `Du hast diese Schulcard-Daten generiert:\n\n${JSON.stringify(currentData, null, 2)}\n\nDer Nutzer möchte folgende Änderungen:\n"${instruction}"\n\nPasse nur die betroffenen Felder an, behalte alle anderen exakt bei. Falls du "traits" änderst: jeder "name" muss EXAKT (Schreibweise 1:1) einer dieser Werte sein: ${TRAIT_NAMES.join(', ')}. Antworte NUR mit dem vollständigen aktualisierten JSON – kein Markdown, keine Erklärungen.`;
 
     let raw = await callBedrock(prompt);
     raw = raw.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim();

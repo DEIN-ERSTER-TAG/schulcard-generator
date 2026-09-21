@@ -280,6 +280,7 @@ input.v-invalid{border-color:#ef4444}
   </div>
 </div>
 
+<script src="eigenschaften-icons.js"></script>
 <script>
 // ── STATE ─────────────────────────────────────────────────────────────────────
 let gData = null;
@@ -770,19 +771,30 @@ function renderSchulcard(d, imgs) {
   ).join('');
   const faktenCount = Math.max(galleryImgs.length, 1);
 
-  const pillRot = ['-5deg','2.5deg','-3deg','4deg','-4deg','2deg'];
-  const pillStyle = i => 'margin-left:' + (i % 2 ? '26px' : '0') + ';transform:rotate(' + pillRot[i % pillRot.length] + ');';
-  const tasksDo   = (d.tasksDo   ||[]).map((t,i) => '<span class="pill" style="' + pillStyle(i) + '">' + t + '</span>').join('');
-  const tasksDont = (d.tasksDont ||[]).map((t,i) => '<span class="pill red" style="' + pillStyle(i) + '">' + t + '</span>').join('');
+  const pillRot = [-5, 2.5, -3, 4, -4, 2];
+  const buildPills = (arr, cls) => (arr||[]).map((t,i) => {
+    const long = t.length > 26;
+    const rot = long ? (i % 2 ? 1.5 : -1.5) : pillRot[i % pillRot.length];
+    const ml = long ? 0 : (i % 2 ? 26 : 0);
+    const prevLong = i > 0 && arr[i-1] && arr[i-1].length > 26;
+    const mt = i === 0 ? 0 : ((long || prevLong) ? 26 : 14);
+    const fs = long ? 'font-size:15px;line-height:19px;' : '';
+    return '<span class="pill' + cls + '" style="margin-left:' + ml + 'px;margin-top:' + mt + 'px;transform:rotate(' + rot + 'deg);max-width:calc(100% - 16px);' + fs + '">' + t + '</span>';
+  }).join('');
+  const tasksDo   = buildPills(d.tasksDo, '');
+  const tasksDont = buildPills(d.tasksDont, ' red');
 
   const checkSvg = '<svg class="ci" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.7"/><path d="M8 12.5l2.5 2.5L16 9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   const clothingItems = (d.equipment||[]).slice(0,4).map(e =>
     '<li>' + checkSvg + '<span class="tx">' + e.name + '</span></li>'
   ).join('');
 
-  const gifts = (d.traits||[]).slice(0,4).map(t =>
-    '<div class="gift"><div class="gift-bg" aria-hidden="true"></div><div class="t">' + t.name + '</div><div class="gift-icon">' + (t.emoji||'⭐') + '</div></div>'
-  ).join('');
+  const normalizeTrait = s => (s||'').toLowerCase().replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss').replace(/[^a-z0-9]/g,'');
+  const gifts = (d.traits||[]).slice(0,4).map(t => {
+    const icon = (typeof EIGENSCHAFTEN_ICONS !== 'undefined') ? EIGENSCHAFTEN_ICONS[normalizeTrait(t.name)] : null;
+    const iconHtml = icon ? '<img src="' + icon.src + '" alt="">' : (t.emoji||'⭐');
+    return '<div class="gift"><div class="gift-bg" aria-hidden="true"></div><div class="t">' + t.name + '</div><div class="gift-icon">' + iconHtml + '</div></div>';
+  }).join('');
 
   const arrowPrev = '<svg class="w-5 h-5" viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   const arrowNext = '<svg class="w-5 h-5" viewBox="0 0 24 24" fill="none"><path d="M9 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
@@ -795,6 +807,7 @@ function renderSchulcard(d, imgs) {
 
   const QJ       = JSON.stringify(d.quiz||[]);
   const initials = (d.companyNameShort||d.companyName||'').slice(0,2).toUpperCase();
+  const personFirstName = (d.personName||'Azubi').replace(/\.$/,'');
   const vacation = d.vacation || 30;
   const weekend  = d.weekend  || 'Nein';
   const salaryY1 = d.salaryY1 || 900;
@@ -851,19 +864,24 @@ body{font-family:'Roboto',sans-serif;background:#e9e9e9;min-height:100vh;padding
 .stage-thumb-img img{width:100%;height:100%;object-fit:cover;display:block}
 .stage-thumb-label{font-size:13px;color:var(--det-schwarz);padding:0 2px}
 
-/* ── Acard (Sprachnachricht, im Audio-Slide) ── */
-.acard{background:rgba(255,255,255,.95);border-radius:14px;padding:16px 18px 14px;backdrop-filter:blur(8px);width:min(420px,88%)}
-.ahead{display:flex;align-items:center;gap:12px;margin-bottom:12px}
-.av{width:46px;height:46px;border-radius:50%;overflow:hidden;flex-shrink:0;background:var(--det-blau);display:flex;align-items:center;justify-content:center;color:#fff;font-size:17px;font-weight:700}
-.aname{font-size:15px;font-weight:700;color:var(--det-schwarz)}
-.arole{font-size:12px;color:var(--det-grau-2)}
-.ctrl{display:flex;align-items:center;gap:8px}
-.ctime{font-size:11px;color:#888;min-width:26px;font-variant-numeric:tabular-nums}
-.bplay{width:46px;height:46px;border-radius:50%;background:var(--det-blau);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;flex-shrink:0}
+/* ── Sprachnachricht (Audio-Slide) ── */
+.stage-shape{position:absolute;top:0;left:0;width:60%;height:56%;background:var(--det-orange);border-bottom-right-radius:100% 65%;pointer-events:none}
+.sp-audio{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;height:100%;padding:24px;color:var(--det-grau-3);box-sizing:border-box}
+.sp-audio-head{display:flex;align-items:center;gap:14px;max-width:min(430px,90%)}
+.sp-audio-photo{position:relative;flex:none;width:clamp(64px,17vw,110px);aspect-ratio:193/173;border-radius:16px;overflow:hidden;background:var(--det-hellgrau);display:flex;align-items:center;justify-content:center;color:var(--det-grau-1)}
+.sp-audio-photo svg{width:46%;height:46%}
+.sp-audio-meta{display:flex;flex-direction:column;gap:8px;min-width:0}
+.sp-audio-name,.sp-audio-role{font-size:16px;line-height:1.3;font-weight:500}
+.sp-audio-kind{font-size:14px;line-height:normal;font-weight:400;opacity:.7}
+.sp-audio-bar{display:flex;align-items:center;gap:14px;margin-top:28px;width:100%;max-width:min(430px,90%)}
+.ctime{font-size:12px;color:rgba(56,74,83,.7);min-width:26px;font-variant-numeric:tabular-nums}
+.bplay{width:36px;height:36px;border-radius:50%;background:var(--det-blau);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;flex-shrink:0}
 .bplay:hover{filter:brightness(1.05)}
-.wf{display:flex;align-items:center;gap:2px;height:20px;flex:1}
-.wb{flex:1;border-radius:2px;background:#cde0ee}
+.wf{display:flex;align-items:center;gap:2px;height:28px;flex:1;min-width:0;overflow:hidden}
+.wb{flex:none;width:3px;border-radius:2px;background:var(--det-grau-1)}
 .wb.p{background:var(--det-blau)}
+.sp-audio-text{margin-top:18px;color:#0091b8;font-size:clamp(18px,3vw,32px);line-height:1.3;letter-spacing:-.02em;font-weight:400;text-align:center;max-width:min(600px,92%)}
+.sp-audio-text b{color:#fff;font-weight:500;background:var(--det-blau);box-shadow:0 0 0 6px var(--det-blau);border-radius:2px}
 
 /* ── Cards / Highlight ── */
 .dp-card{background:#fff;border-radius:16px;padding:40px 48px}
@@ -971,6 +989,7 @@ body{font-family:'Roboto',sans-serif;background:#e9e9e9;min-height:100vh;padding
 .gift-bg{position:absolute;inset:0;height:66.67%;background:var(--det-gelb);z-index:0}
 .gift .t{position:relative;z-index:1;font-size:23px;line-height:27px;font-weight:600;max-width:100%;overflow-wrap:anywhere}
 .gift-icon{position:relative;z-index:1;margin-top:auto;margin-bottom:8px;width:150px;height:150px;display:flex;align-items:center;justify-content:center;flex:none;font-size:84px;line-height:1}
+.gift-icon img{width:100%;height:100%;object-fit:contain}
 @media(max-width:680px){.gift{padding:56px 12px 16px;height:320px}.gift-icon{width:110px;height:110px;font-size:60px}}
 
 /* ── Offer-Rows ── */
@@ -1080,22 +1099,25 @@ body{font-family:'Roboto',sans-serif;background:#e9e9e9;min-height:100vh;padding
           ${heroImg ? '<img src="' + heroImg + '" alt="">' : '<div class="stage-slide-ph">Kein Titelfoto</div>'}
         </div>
         <div class="stage-slide is-audio" id="stageSlide1">
-          <div class="acard">
-            <div class="ahead">
-              <div class="av">${(d.personName||'A').charAt(0)}</div>
-              <div>
-                <div class="aname">${d.personName||'Azubi'}</div>
-                <div class="arole">${d.personRole||''}</div>
+          <div class="stage-shape"></div>
+          <div class="stage-badge"><svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M4 14v-2a8 8 0 0 1 16 0v2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><rect x="2" y="14" width="5" height="7" rx="2" fill="currentColor"/><rect x="17" y="14" width="5" height="7" rx="2" fill="currentColor"/></svg></div>
+          <div class="sp-audio">
+            <div class="sp-audio-head">
+              <div class="sp-audio-photo"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg></div>
+              <div class="sp-audio-meta">
+                <div class="sp-audio-name">${d.personName||'Azubi'}</div>
+                <div class="sp-audio-role">${d.personRole||''}</div>
+                <div class="sp-audio-kind">Sprachnachricht</div>
               </div>
             </div>
-            <div class="ctrl">
+            <div class="sp-audio-bar">
               <button class="bplay" id="pbtn" onclick="togglePlay()">
-                <svg id="pico" width="16" height="16" viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21"/></svg>
+                <svg id="pico" width="14" height="14" viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21"/></svg>
               </button>
-              <span class="ctime" id="tel">0:00</span>
               <div class="wf" id="wf"></div>
-              <span class="ctime">0:42</span>
+              <span class="ctime"><span id="tel">0:00</span> / 0:42</span>
             </div>
+            <div class="sp-audio-text"><b>Hi,</b> ich bin ${personFirstName}.</div>
           </div>
         </div>
       </div>
@@ -1201,7 +1223,7 @@ body{font-family:'Roboto',sans-serif;background:#e9e9e9;min-height:100vh;padding
     </div>
 
     <div class="factsrow2">
-      <div class="fact urlaub-photo" style="${heroImg ? 'background-image:url(\'' + heroImg + '\')' : ''}">
+      <div class="fact urlaub-photo" style="background-image:url('https://www.deinerstertag.de/preview/assets-neu/detail/urlaub.jpg')">
         <div class="fact-urlaub-num">
           <div class="n">${vacation}</div>
           <div class="t">Tage<br>Urlaub</div>

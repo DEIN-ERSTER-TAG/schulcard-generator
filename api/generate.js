@@ -54,6 +54,11 @@ async function fetchUrlContent(url) {
   }
 }
 
+// Feste Eigenschaften-Liste (deckungsgleich mit den Icons in "Icons Eigenschaften-update" /
+// eigenschaften-icons.js) – die KI wählt ausschließlich aus dieser Liste, damit jede
+// generierte Eigenschaft ein passendes Icon in der Schulcard hat statt eines Emoji-Fallbacks.
+const TRAIT_NAMES = ["Analytisches Denken", "Arbeitet gerne im Büro", "Ausdauer", "Belastbarkeit", "Beobachtungsgabe", "Beratungskompetenz", "Bleibt ruhig", "Bühnenpräsenz", "Computer-Fan", "Ehrlichkeit", "Empathie", "Entscheidungsfreude", "Feinschmecker", "Findet Fehler", "Führungsstärke", "Geduld", "Genauigkeit", "Gern unterwegs", "Gern an der frischen Luft", "Geschickte Hände", "Grüner Daumen", "Gutes Farbsehen", "Handwerkliches Geschick", "Hilfsbereitschaft", "Hitzetoleranz", "Hygienebewusstsein", "Kommunikationsstärke", "Konzentrationsfähigkeit", "Körperliche Belastbarkeit", "Kreativität", "Leseratte", "Logisches Denken", "Maschinenverständnis", "Mathematisches Denken", "Multitaskingfähigkeit", "Mut", "Naturverbundenheit", "Offen für Schichtdienst", "Organisationsgeschick", "Orientierungssinn", "Planungsfähigkeit", "Präzision", "Qualitätsbewusstsein", "Räumliches Vorstellungsvermögen", "Reaktionsschnelligkeit", "Rechtliches Verständnis", "Regeltreue", "Respektvoll", "Schwindelfrei", "Selbstständigkeit", "Serviceorientierung", "Sicherheitsbewusstsein", "Sorgfalt", "Sprachtalent", "Stressresistenz", "Systhematisches Denken", "Teamfähigkeit", "Technikbegeisterung", "Technisches Verständnis", "Tierliebe", "Umweltbewusstsein", "Überblick", "Verantwortungsbewusstsein", "Verkaufstalent", "Vertrauenswürdigkeit", "Wetterfestigkeit", "Zahlenverständnis", "Zeichentalent", "Zusammenhänge erkennen", "Zuverlässigkeit", "verhandlungsgeschick"];
+
 function buildPrompt(companyName, jobTitle, street, zip, city, trainingType, urlContent) {
   const isStudium = trainingType === 'duales-studium';
   const typeLabel = isStudium ? 'Duales Studium' : 'Ausbildung';
@@ -114,11 +119,10 @@ Antworte NUR mit validem JSON – kein Markdown, keine Erklärungen:
     {"name": "Arbeitsutensil 5", "desc": "Wozu man es braucht"}
   ],
   "traits": [
-    {"emoji": "passendes Emoji", "name": "Eigenschaft 1 wichtig für ${jobTitle}", "desc": "Warum diese Eigenschaft für den Beruf wichtig ist"},
-    {"emoji": "passendes Emoji", "name": "Eigenschaft 2", "desc": "Kurze Erklärung"},
-    {"emoji": "passendes Emoji", "name": "Eigenschaft 3", "desc": "Kurze Erklärung"},
-    {"emoji": "passendes Emoji", "name": "Eigenschaft 4", "desc": "Kurze Erklärung"},
-    {"emoji": "passendes Emoji", "name": "Eigenschaft 5", "desc": "Kurze Erklärung"}
+    {"emoji": "passendes Emoji", "name": "EXAKT einer dieser Namen (Schreibweise 1:1 übernehmen), der am besten zu ${jobTitle} passt: ${TRAIT_NAMES.join(', ')}", "desc": "Warum diese Eigenschaft für den Beruf wichtig ist"},
+    {"emoji": "passendes Emoji", "name": "ein anderer Name aus derselben Liste", "desc": "Kurze Erklärung"},
+    {"emoji": "passendes Emoji", "name": "ein anderer Name aus derselben Liste", "desc": "Kurze Erklärung"},
+    {"emoji": "passendes Emoji", "name": "ein anderer Name aus derselben Liste", "desc": "Kurze Erklärung"}
   ],
   "internshipDesc": "Wie ein Praktikum als ${jobTitle} bei ${companyName} aussieht",
   "applyDate": "01.08.2026",
